@@ -7,7 +7,9 @@
 
 # Lifecycle
 
-1. Preprocessing: In this step, we start with the raw data. Relative to my application, I started witb doing some simple search on the movie database. I simply take the query from the user and then do a walk through all the movies in the database. If any movie contains the search term, I add it to the result. This might be the use case for applications where identifying exact matches are important, but sometimes, we want to simulate user intent. This is where the idea of tokenization comes in. 
+1. ## Preprocessing:
+
+In this step, we start with the raw data. Relative to my application, I started witb doing some simple search on the movie database. I simply take the query from the user and then do a walk through all the movies in the database. If any movie contains the search term, I add it to the result. This might be the use case for applications where identifying exact matches are important, but sometimes, we want to simulate user intent. This is where the idea of tokenization comes in. 
 
  - Tokenization: In this step, we break down the text into smaller units called tokens. 
 
@@ -19,7 +21,9 @@
 
 All of this taken together form the core of the preprocessing stage of a RAG pipeline. 
 
-2. Indexing: Indexing is a way of mapping words to documents. In a naive search, we might go through all the movies and check if the search term is in the title. This is inefficient, so we create an index that maps words to the documents that contain them. For example, if we have a movie database with the following movies:
+2. ## Indexing
+
+ Indexing is a way of mapping words to documents. In a naive search, we might go through all the movies and check if the search term is in the title. This is inefficient, so we create an index that maps words to the documents that contain them. For example, if we have a movie database with the following movies:
 
 ```
 1. The Matrix
@@ -127,7 +131,7 @@ That gives me the IDF half of each term's score. The other half is the **term-fr
 
 $$\text{tf}_{\text{BM25}} = \frac{f \cdot (k_1 + 1)}{f + k_1}$$
 
-where $f$ is the raw term frequency (my `get_tf`) and $k_1$ is a tuning knob (I default it to `BM25_K1 = 1.5`). The shape is the whole point — it climbs fast for the first few occurrences, then flattens toward a ceiling of $k_1 + 1$:
+where $f$ is the raw term frequency (my `get_tf`) and $k_1$ is a tuning knob (I default it to `BM25_K1 = 1.5`). The shape is the whole point it climbs fast for the first few occurrences, then flattens toward a ceiling of $k_1 + 1$. NOTE: I chose 1.5 because conventionally, it works best in practice.
 
 | raw $f$ | saturated tf ($k_1 = 1.5$) |
 |---------|-----------------------------|
@@ -169,3 +173,24 @@ The more I let normalization act, the more this *short* document is rewarded for
 $$\text{score}(D, Q) = \sum_{q_i \in Q} \text{tf}_{\text{BM25}}(q_i, D) \cdot \text{IDF}(q_i)$$
 
 That sum is what my `bm25_search` method computes for every candidate document before sorting by score and returning the top matches — exposed as the `bm25search` CLI command. With that, the keyword-search half of the engine is done; the next stage is semantic search with embeddings.
+
+3. ## Semantic Search:
+
+For this search type, we turn our attention to embedding models which do a lot of the preprocessing work which we'd normally do for the keyword search which we did earlier. An sentence transformer, turns text into an embedding. An embedding is just a way of representing words as an array of numbers. If you're like me and you've taken any college level introductry class, you might think of Vectors, and boyy, you're not wrong. That's exactly what the embeddings are. When we convert our text to embeddings, we could start to do some operations on the vectors to combine information or subtract information. For example, if we want to find funny movies by Kevin hart, intuitively, what happens, is that that search query is broken into tokens like in the Keyword search which we implemented some days back, and then each token gets added to each other. More concretely:
+
+```
+DISCLAIMER: This is just an example. I'm making these vectors all up.
+
+Kevin Hart: [0.0, 0.3, 0.5]
+funny movies: [0.7, 0.4, 0.2]
+
+Now with those vectors, we just add them up:
+
+funny movies by Kevin Hart: [0.7, 0.7, 0.7] **(I swear, it's by coincidence these numbers all came out to be 0.7. I wasn't thinking when I choose the floating point numbers here. Wow!!!)**
+
+
+And if we want funny movies by anyone else but not Kevin Hart, that's simply a subtraction operation.
+
+funny movies not by Kevin Hart: [0.7, 0.1, 0.3]
+
+```
