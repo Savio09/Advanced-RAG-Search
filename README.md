@@ -41,11 +41,11 @@ An index would look like this:
 "Knight": [3]
 ```
 
-Now, if a user searches for "Matrix", we can quickly find the document that contains the word "Matrix" by looking it up in the index. This is much more efficient than going through all the movies and checking if the search term is in the title. This is the whole idea underpining an inverted index. Simply put, an inverted index is a data structure that maps words to the documents that contain them. There's many types of indices and depending on the application, one might be better than another. A more sophisticated way to do this would be to use TF-IDF (Term Frequency-Inverse Document Frequency), which is a numerical statistic that is used to reflect how important a word is to a document in a collection or corpus. With TF-IDF, we're doing the same thing, but not only do we care if a word is in a document, we are also concerned with the frequency of the word in the document and the rarity of the word across the corpus (where corpus is the whole collection of documents. Here's an analogy to make things more concrete for my potential readers, let's assume we have a novel that's about 50 pages long. Per page, we want to create an index of words that appear on that page. After creating that index, we would then obtain the frequency of the words on the page. We'd do this for all 50 pages, and then we would see how for each word, it happens to be distributed across the 50 pages. If a word is very common in a page, but rare across the entire book, then it's likely to be an important word in that page. Conversely, if a word is very common across all 50 pages, then it's likely to be a stop word and thus not very important for the purposes of retrieval.) A better way would be to use the BM25 algorithm, which is a ranking function used by search engines to estimate the relevance of documents to a given search query. (It's an improvement over TF-IDF that takes into account document length and term frequency normalization.) In simpler terms, it is simply: $${\text{score}(D, Q) = \sum_{i=1}^{n} \text{IDF}(q_i) \cdot \frac{f(q_i, D) \cdot (k_1 + 1)}{f(q_i, D) + k_1 \cdot \left(1 - b + b \cdot \frac{|D|}{\bar{d}}\right)}}$$
+Now, if a user searches for "Matrix", we can quickly find the document that contains the word "Matrix" by looking it up in the index. This is much more efficient than going through all the movies and checking if the search term is in the title. This is the whole idea underpining an inverted index. Simply put, an inverted index is a data structure that maps words to the documents that contain them. There's many types of indices and depending on the application, one might be better than another. A more sophisticated way to do this would be to use TF-IDF (Term Frequency-Inverse Document Frequency), which is a numerical statistic that is used to reflect how important a word is to a document in a collection or corpus. With TF-IDF, we're doing the same thing, but not only do we care if a word is in a document, we are also concerned with the frequency of the word in the document and the rarity of the word across the corpus (where corpus is the whole collection of documents. Here's an analogy to make things more concrete for my potential readers, let's assume we have a novel that's about 50 pages long. Per page, we want to create an index of words that appear on that page. After creating that index, we would then obtain the frequency of the words on the page. We'd do this for all 50 pages, and then we would see how for each word, it happens to be distributed across the 50 pages. If a word is very common in a page, but rare across the entire book, then it's likely to be an important word in that page. Conversely, if a word is very common across all 50 pages, then it's likely to be a stop word and thus not very important for the purposes of retrieval.) A better way would be to use the BM25 algorithm, which is a ranking function used by search engines to estimate the relevance of documents to a given search query. (It's an improvement over TF-IDF that takes into account document length and term frequency normalization.) In simpler terms, it is simply: ${\text{score}(D, Q) = \sum_{i=1}^{n} \text{IDF}(q_i) \cdot \frac{f(q_i, D) \cdot (k_1 + 1)}{f(q_i, D) + k_1 \cdot \left(1 - b + b \cdot \frac{|D|}{\bar{d}}\right)}}$
 
 The piece I've built so far is the $\text{IDF}(q_i)$ term inside that sum: BM25's **inverse document frequency** for a single query term $q_i$. Its formula is:
 
-$$\text{IDF}(q_i) = \log\!\left(\frac{N - df(q_i) + 0.5}{df(q_i) + 0.5} + 1\right)$$
+$\text{IDF}(q_i) = \log\!\left(\frac{N - df(q_i) + 0.5}{df(q_i) + 0.5} + 1\right)$
 
 where:
 
@@ -117,11 +117,11 @@ hero -> {3}       fight -> {3}      crime -> {3}
 
 **Step 4 — BM25 IDF of the query term.** Now I plug into the formula. There are $N = 3$ documents, and `lion` appears in only one, so $df = 1$:
 
-$$\text{IDF}(\text{lion}) = \log\!\left(\frac{3 - 1 + 0.5}{1 + 0.5} + 1\right) = \log\!\left(\frac{2.5}{1.5} + 1\right) = \log(2.667) \approx 0.98$$
+$\text{IDF}(\text{lion}) = \log\!\left(\frac{3 - 1 + 0.5}{1 + 0.5} + 1\right) = \log\!\left(\frac{2.5}{1.5} + 1\right) = \log(2.667) \approx 0.98$
 
 Compare that with a common term like `king`, which is in two of the three documents ($df = 2$):
 
-$$\text{IDF}(\text{king}) = \log\!\left(\frac{3 - 2 + 0.5}{2 + 0.5} + 1\right) = \log\!\left(\frac{1.5}{2.5} + 1\right) = \log(1.6) \approx 0.47$$
+$\text{IDF}(\text{king}) = \log\!\left(\frac{3 - 2 + 0.5}{2 + 0.5} + 1\right) = \log\!\left(\frac{1.5}{2.5} + 1\right) = \log(1.6) \approx 0.47$
 
 So the rarer term `lion` (0.98) outscores the common term `king` (0.47) — exactly the behaviour we want from IDF.
 
@@ -129,7 +129,7 @@ That gives me the IDF half of each term's score. The other half is the **term-fr
 
 **Step 5 — Term frequency saturation.** With plain TF-IDF, a word that appears 10 times counts 10× as much as a word that appears once. That's rarely what I actually want: once a movie's description is clearly *about* lions, the 8th mention of "lion" tells me very little more than the 2nd did. BM25 models this with a *saturating* term frequency:
 
-$$\text{tf}_{\text{BM25}} = \frac{f \cdot (k_1 + 1)}{f + k_1}$$
+$\text{tf}_{\text{BM25}} = \frac{f \cdot (k_1 + 1)}{f + k_1}$
 
 where $f$ is the raw term frequency (my `get_tf`) and $k_1$ is a tuning knob (I default it to `BM25_K1 = 1.5`). The shape is the whole point it climbs fast for the first few occurrences, then flattens toward a ceiling of $k_1 + 1$. NOTE: I chose 1.5 because conventionally, it works best in practice.
 
